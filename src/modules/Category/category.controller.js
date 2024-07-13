@@ -1,4 +1,6 @@
 import Category from '../../../DB/Models/category.model.js';
+import subCategory from '../../../DB/Models/sub-category.model.js';
+import Brand from '../../../DB/Models/brand.model.js';
 import slugify from 'slugify';
 import cloudinaryConnection from '../../utils/cloudinary.js';
 import generateUniqueString from '../../utils/generate-Unique-String.js';
@@ -45,7 +47,7 @@ export const addCategory = async (req, res, next) => {
   });
 };
 
-//================================ update category ================================//
+//================================ updadte category ================================//
 export const updateCategory = async (req, res, next) => {
   // 1- destructuring the request body
   const { name, oldPublicId } = req.body;
@@ -82,7 +84,7 @@ export const updateCategory = async (req, res, next) => {
   // 6- check if the user want to update the image
   if (oldPublicId) {
     if (!req.file) return next({ cause: 400, message: 'Image is required' });
-    //to over right  the publicId
+
     const newPublicId = oldPublicId.split(`${category.folderId}/`)[1];
 
     const { secure_url } = await cloudinaryConnection().uploader.upload(
@@ -109,9 +111,15 @@ export const updateCategory = async (req, res, next) => {
 
 //============================== get all categories ==============================//
 export const getAllCategories = async (req, res, next) => {
+  // nested populate
   const categories = await Category.find().populate([
     {
       path: 'subcategories',
+      populate: [
+        {
+          path: 'Brands',
+        },
+      ],
     },
   ]);
   // console.log(categories);
@@ -120,4 +128,47 @@ export const getAllCategories = async (req, res, next) => {
     message: 'Categories fetched successfully',
     data: categories,
   });
+};
+
+//====================== delete category ======================//
+export const deleteCategory = async (req, res, next) => {
+  const { categoryId } = req.params;
+
+  // 1- delete category
+  const category = await Category.findByIdAndDelete(categoryId);
+  if (!category) return next({ cause: 404, message: 'Category not found' });
+
+  // 2-delete the related subcategories
+  const subCategories = await subCategory.deleteMany({ categoryId });
+  if (subCategories.deletedCount <= 0) {
+    console.log(subCategories.deletedCount);
+    console.log('There is no related subcategories');
+    res.status(200).json({
+      success: true,
+      message: 'subCategories Deleted successfully',
+    });
+  }
+
+  //3- delete the related brands
+  const brands = await Brand.deleteMany({ categoryId });
+  if (brands.deletedCount <= 0) {
+    console.log(brands.deletedCount);
+    console.log('There is no related brands');
+    res.status(200).json({
+      success: true,
+      message: 'Brands Deleted successfully',
+    });
+  }
+
+  // 4- delete the category folder from cloudinary
+  await cloudinaryConnection().api.delete_resources_by_prefix(
+    `${process.env.MAIN_FOLDER}/Categories/${category.folderId}`
+  );
+  await cloudinaryConnection().api.delete_folder(
+    `${process.env.MAIN_FOLDER}/Categories/${category.folderId}`
+  );
+
+  res
+    .status(200)
+    .json({ success: true, message: 'Category deleted successfully' });
 };

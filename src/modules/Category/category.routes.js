@@ -17,7 +17,7 @@ router.post(
 );
 
 router.put(
-  '/:categoryId',
+  'updateCategory/:categoryId',
   auth(endPointsRoles.ADD_CATEGORY),
   multerMiddleHost({
     extensions: allowedExtensions.image,
@@ -25,8 +25,11 @@ router.put(
   expressAsyncHandler(categoryController.updateCategory)
 );
 
-router.get(
-  '/getCategories',
-  expressAsyncHandler(categoryController.getAllCategories)
+router.get('/', expressAsyncHandler(categoryController.getAllCategories));
+//================= Delete Category ============================
+router.delete(
+  '/deleteCategory/:categoryId',
+  auth(endPointsRoles.ADD_CATEGORY),
+  expressAsyncHandler(categoryController.deleteCategory)
 );
 export default router;
