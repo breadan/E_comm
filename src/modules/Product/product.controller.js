@@ -17,6 +17,7 @@ import generateUniqueString from '../../utils/generate-Unique-String.js';
 
 //================================= Add product API =================================//
 export const addProduct = async (req, res, next) => {
+  console.log('object');
   // data from the request body
   const { title, desc, basePrice, discount, stock, specs } = req.body;
   // data from the request query
@@ -39,6 +40,7 @@ export const addProduct = async (req, res, next) => {
     });
 
   // who will be authorized to add a product
+  //role =admin , brand owner, superAdmin
   if (
     req.authUser.role !== systemRoles.SUPER_ADMIN &&
     brand.addedBy.toString() !== addedBy.toString()
@@ -52,7 +54,7 @@ export const addProduct = async (req, res, next) => {
   const slug = slugify(title, { lower: true, replacement: '-' }); //  lowercase: true
 
   //  applied price calculations  it is stander
-  const appliedPrice = basePrice - (basePrice * (discount || 0)) / 100;
+  const appliedPrice = basePrice - basePrice * ((discount || 0) / 100);
 
   console.log(specs);
 
@@ -60,20 +62,21 @@ export const addProduct = async (req, res, next) => {
   if (!req.files?.length)
     //1
     return next({ cause: 400, message: 'Images are required' });
-  const Images = [];
+  // const folderPath = brand.Image.public_id.split(`${brand.folderId}/`)[0];
   const folderId = generateUniqueString(4);
-  const folderPath = brand.Image.public_id.split(`${brand.folderId}/`)[0];
+  const Images = [];
 
   for (const file of req.files) {
     //2
     // ecommerce-project/Categories/4aa3/SubCategories/fhgf/Brands/5asf/z2wgc418otdljbetyotn
+    const folder = brand.Image.public_id.split(`${brand.folderId}/`)[0];
     const { secure_url, public_id } =
       await cloudinaryConnection().uploader.upload(file.path, {
-        folder: folderPath + `${brand.folderId}/Products/${folderId}`,
+        folder: folder + `${brand.folderId}` + `/Products/${folderId}`,
       });
     Images.push({ secure_url, public_id });
   }
-  req.folder = folderPath + `${brand.folderId}/Products/${folderId}`;
+  req.folder = folderId + `${brand.folderId}` + `/Products/${folderId}`;
 
   // prepare the product object for db
   const product = {
