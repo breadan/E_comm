@@ -29,7 +29,12 @@ export const addCategory = async (req, res, next) => {
     await cloudinaryConnection().uploader.upload(req.file.path, {
       folder: `${process.env.MAIN_FOLDER}/Categories/${folderId}`,
     });
-
+  //check rollback errors
+  console.log(`${process.env.MAIN_FOLDER}/Categories/${folderId}`);
+  req.folder = `${process.env.MAIN_FOLDER}/Categories/${folderId}`;
+  //error to check rollbackSavedDocuments
+  // const x = 4;
+  // x = 7;
   // 5- generate the categroy object
   const category = {
     name,
@@ -40,6 +45,10 @@ export const addCategory = async (req, res, next) => {
   };
   // 6- create the category
   const categoryCreated = await Category.create(category);
+
+  //to check roll backSaved
+  // const f = 7;
+  // f = 5;
   res.status(201).json({
     success: true,
     message: 'Category created successfully',
