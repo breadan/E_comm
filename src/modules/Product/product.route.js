@@ -16,7 +16,7 @@ router.post(
 );
 
 router.put(
-  '/:productId',
+  '/updateProduct/:productId',
   auth(endPointsRoles.ADD_PRODUCT),
   multerMiddleHost({ extensions: allowedExtensions.image }).single('image'),
   expressAsyncHandler(productController.updateProduct)

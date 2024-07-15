@@ -11,6 +11,7 @@ export const addBrand = async (req, res, next) => {
   const { name } = req.body;
   const { categoryId, subCategoryId } = req.query;
   const { _id } = req.authUser;
+
   // category check , subcategory check
   // 2- subcategory check
   const subCategoryCheck = await subCategory

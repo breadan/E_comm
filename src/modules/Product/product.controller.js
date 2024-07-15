@@ -17,7 +17,6 @@ import generateUniqueString from '../../utils/generate-Unique-String.js';
 
 //================================= Add product API =================================//
 export const addProduct = async (req, res, next) => {
-  console.log('object');
   // data from the request body
   const { title, desc, basePrice, discount, stock, specs } = req.body;
   // data from the request query
@@ -40,7 +39,6 @@ export const addProduct = async (req, res, next) => {
     });
 
   // who will be authorized to add a product
-  //role =admin , brand owner, superAdmin
   if (
     req.authUser.role !== systemRoles.SUPER_ADMIN &&
     brand.addedBy.toString() !== addedBy.toString()
@@ -53,30 +51,31 @@ export const addProduct = async (req, res, next) => {
   // generate the product  slug
   const slug = slugify(title, { lower: true, replacement: '-' }); //  lowercase: true
 
-  //  applied price calculations  it is stander
-  const appliedPrice = basePrice - basePrice * ((discount || 0) / 100);
+  //  applied price calculations
+  const appliedPrice = basePrice - (basePrice * (discount || 0)) / 100;
 
   console.log(specs);
 
   //Images
-  if (!req.files?.length)
-    //1
-    return next({ cause: 400, message: 'Images are required' });
-  // const folderPath = brand.Image.public_id.split(`${brand.folderId}/`)[0];
   const folderId = generateUniqueString(4);
   const Images = [];
 
+  if (!req.files.length)
+    return next({ cause: 400, message: 'Images are required' });
+
+  // ecommerce-project/Categories/4aa3/SubCategories/fhgf/Brands/5asf/z2wgc418otdljbetyotn
+  const folder = brand.Image.public_id.split(`${brand.folderId}/`)[0];
   for (const file of req.files) {
-    //2
-    // ecommerce-project/Categories/4aa3/SubCategories/fhgf/Brands/5asf/z2wgc418otdljbetyotn
-    const folder = brand.Image.public_id.split(`${brand.folderId}/`)[0];
+    console.log(folder);
+    console.log(folder + `${brand.folderId}` + `/Products/${folderId}`);
+
     const { secure_url, public_id } =
       await cloudinaryConnection().uploader.upload(file.path, {
         folder: folder + `${brand.folderId}` + `/Products/${folderId}`,
       });
     Images.push({ secure_url, public_id });
   }
-  req.folder = folderId + `${brand.folderId}` + `/Products/${folderId}`;
+  req.folder = folder + `${brand.folderId}` + `/Products/${folderId}`;
 
   // prepare the product object for db
   const product = {
@@ -95,9 +94,8 @@ export const addProduct = async (req, res, next) => {
     Images,
     folderId,
   };
-
   const newProduct = await Product.create(product);
-  req.savedDocuments = { model: Product, _id: newProduct._id };
+  req.savedDocument = { model: Product, _id: newProduct._id };
 
   res.status(201).json({
     success: true,
@@ -119,13 +117,13 @@ export const addProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   // data from the request body
   const { title, desc, specs, stock, basePrice, discount, oldPublicId } =
-    req.body;
+    req.body; //oldPublicId of image
   // data for condition
   const { productId } = req.params;
   // data from the request authUser
   const addedBy = req.authUser._id;
 
-  // prodcuct Id
+  // product Id
   const product = await Product.findById(productId);
   if (!product) return next({ cause: 404, message: 'Product not found' });
 
@@ -148,8 +146,7 @@ export const updateProduct = async (req, res, next) => {
   if (specs) product.specs = JSON.parse(specs);
   if (stock) product.stock = stock;
 
-  // prices changes
-  // const appliedPrice = (basePrice || product.basePrice) - ((basePrice || product.basePrice) * (discount || product.discount) / 100)
+  // prices changes //it is stander
   const appliedPrice =
     (basePrice || product.basePrice) *
     (1 - (discount || product.discount) / 100);
