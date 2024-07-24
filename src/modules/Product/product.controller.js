@@ -5,6 +5,8 @@ import Product from '../../../DB/Models/product.model.js';
 import { systemRoles } from '../../utils/system-roles.js';
 import cloudinaryConnection from '../../utils/cloudinary.js';
 import generateUniqueString from '../../utils/generate-Unique-String.js';
+import { APIFeatures } from '../../utils/api-features.js';
+import { paginationFunction } from '../../utils/pagination.js';
 
 /**
  *
@@ -54,7 +56,7 @@ export const addProduct = async (req, res, next) => {
   //  applied price calculations
   const appliedPrice = basePrice - (basePrice * (discount || 0)) / 100;
 
-  console.log(specs);
+  // console.log(specs);
 
   //Images
   const folderId = generateUniqueString(4);
@@ -66,8 +68,8 @@ export const addProduct = async (req, res, next) => {
   // ecommerce-project/Categories/4aa3/SubCategories/fhgf/Brands/5asf/z2wgc418otdljbetyotn
   const folder = brand.Image.public_id.split(`${brand.folderId}/`)[0];
   for (const file of req.files) {
-    console.log(folder);
-    console.log(folder + `${brand.folderId}` + `/Products/${folderId}`);
+    // console.log(folder);
+    // console.log(folder + `${brand.folderId}` + `/Products/${folderId}`);
 
     const { secure_url, public_id } =
       await cloudinaryConnection().uploader.upload(file.path, {
@@ -156,6 +158,7 @@ export const updateProduct = async (req, res, next) => {
   if (discount) product.discount = discount;
 
   if (oldPublicId) {
+    //of image
     if (!req.file)
       return next({ cause: 400, message: 'Please select new image' });
 
@@ -190,4 +193,29 @@ export const updateProduct = async (req, res, next) => {
     message: 'Product updated successfully',
     data: product,
   });
+};
+
+//===================================== get all products API ===================================//
+export const getAllProducts = async (req, res, next) => {
+  const { page, size, sort, ...search } = req.query;
+  const features = new APIFeatures(req.query, Product.find())
+    // .sort(sort)
+    // .pagination({ page, size })
+    // .search(search)
+    .filters(search);
+
+  // console.log(features.mongooseQuery);
+  const products = await features.mongooseQuery;
+  res.status(200).json({ success: true, message: '', data: products });
+};
+
+//===================================== get All product  ===================================//
+export const getAllProducts2 = async (req, res, next) => {
+  const { page, size } = req.query;
+  // const data = paginationFunction({ page, size });
+
+  // console.log(data);
+  const { limit, skip } = paginationFunction({ page, size });
+  const products = await Product.find().limit(limit).skip(skip);
+  res.status(200).json({ success: true, data: products });
 };

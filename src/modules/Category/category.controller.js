@@ -56,7 +56,7 @@ export const addCategory = async (req, res, next) => {
   });
 };
 
-//================================ updadte category ================================//
+//================================ update category ================================//
 export const updateCategory = async (req, res, next) => {
   // 1- destructuring the request body
   const { name, oldPublicId } = req.body;

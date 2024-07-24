@@ -3,7 +3,7 @@
 import nodemailer from 'nodemailer';
 
 const sendEmailService = async ({
-  to = '', // 'email1' , 'email1,email2,email3'
+  to = '',
   subject = 'no-reply',
   message = '<h1>no-message</h1>',
   attachments = [],
@@ -22,9 +22,9 @@ const sendEmailService = async ({
 
   const info = await transporter.sendMail({
     from: `"Fred Foo 👻" <${process.env.EMAIL}>`, // sender
-    to, // list of \
-    subject, // Subject line
-    html: message, // html ,
+    to,
+    subject,
+    html: message,
     attachments,
   });
 

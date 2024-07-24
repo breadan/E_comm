@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 //============================== Create the subcategory schema ==============================//
 
@@ -35,4 +35,5 @@ subCategorySchema.virtual('Brands', {
   // justOne: true  //to show one subcategory
 });
 
-export default model('SubCategory', subCategorySchema);
+export default mongoose.model.SubCategory ||
+  model('SubCategory', subCategorySchema);

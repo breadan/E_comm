@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 //============================== create the category schema ==============================//
 const categorySchema = new Schema(
@@ -28,7 +28,7 @@ categorySchema.virtual('subcategories', {
   // justOne: true  //to show one subcategory
 });
 
-export default model('Category', categorySchema);
+export default mongoose.model.Category || model('Category', categorySchema);
 
 /**
  * nodeJs

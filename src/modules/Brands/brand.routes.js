@@ -16,4 +16,14 @@ router.post(
   }).single('image'),
   expressAsyncHandler(brandController.addBrand)
 );
+
+router.put(
+  '/updateBrand/:brandId',
+  auth(endPointsRoles.ADD_BRAND),
+  // multerMiddleHost({
+  //   extensions: allowedExtensions.image,
+  // }).single('image'),
+  expressAsyncHandler(brandController.updateBrand)
+);
+
 export default router;

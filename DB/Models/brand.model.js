@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 //============================== Create the brand schema ==============================//
 
@@ -29,4 +29,4 @@ const brandSchema = new Schema(
   }
 );
 
-export default model('Brand', brandSchema);
+export default mongoose.models.Brand || model('Brand', brandSchema);

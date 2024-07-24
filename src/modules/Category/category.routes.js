@@ -25,7 +25,11 @@ router.put(
   expressAsyncHandler(categoryController.updateCategory)
 );
 
-router.get('/', expressAsyncHandler(categoryController.getAllCategories));
+router.get(
+  '/getCategories',
+  auth(endPointsRoles.ADD_CATEGORY),
+  expressAsyncHandler(categoryController.getAllCategories)
+);
 //================= Delete Category ============================
 router.delete(
   '/deleteCategory/:categoryId',

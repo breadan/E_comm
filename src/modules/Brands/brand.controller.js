@@ -4,6 +4,7 @@ import Brand from '../../../DB/Models/brand.model.js';
 import subCategory from '../../../DB/Models/sub-category.model.js';
 import cloudinaryConnection from '../../utils/cloudinary.js';
 import generateUniqueString from '../../utils/generate-Unique-String.js';
+import { systemRoles } from '../../utils/system-roles.js';
 
 //======================= add brand =======================//
 export const addBrand = async (req, res, next) => {
@@ -62,5 +63,62 @@ export const addBrand = async (req, res, next) => {
     status: 'success',
     message: 'Brand added successfully',
     data: newBrand,
+  });
+};
+
+//======================= add brand =======================//
+export const updateBrand = async (req, res, next) => {
+  //data from body
+  const { name, oldPublicId } = req.body;
+  const { brandId } = req.params;
+  const addedBy = req.authUser._id;
+
+  //check brand
+  const brand = await Brand.findById(brandId);
+  if (!brand) return next({ message: 'Brand not found', cause: 404 });
+
+  if (
+    req.authUser.role !== systemRoles.ADMIN &&
+    brand.addedBy.toString() !== addedBy.toString()
+  )
+    return next({
+      cause: 403,
+      message: 'You are not authorized to update this product',
+    });
+
+  // generate the slug
+  if (name) {
+    brand.name = name;
+    brand.slug = slugify(name, '-');
+    console.log(name);
+  }
+  //ecommerce-project/Categories/2gs2/SubCategories/4g1f/Brands/44ds/lkfxpheqbjsmftn0bec1.jpg
+  if (oldPublicId) {
+    if (!req.file) {
+      return next({ cause: 400, message: 'Image is required' });
+    }
+    const folderPath = brand.Image.public_id.split(`${brand.folderId}/`)[0];
+    const newPublicId = oldPublicId.split(`${brand.folderId}/`)[1];
+
+    const { secure_url } = await cloudinaryConnection().uploader.upload(
+      req.file.path,
+      {
+        folder: folderPath + `${brand.folderId}`,
+        public_id: newPublicId,
+      }
+    );
+    brand.Image.map((img) => {
+      if (img.public_id === oldPublicId) {
+        img.secure_url = secure_url;
+      }
+    });
+    req.folder = folderPath + `${brand.folderId}`;
+  }
+
+  await brand.save();
+  res.status(200).json({
+    success: true,
+    message: 'Brand updated successfully',
+    data: brand,
   });
 };
