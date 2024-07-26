@@ -138,7 +138,6 @@ export const updateProduct = async (req, res, next) => {
       cause: 403,
       message: 'You are not authorized to update this product',
     });
-
   // title update
   if (title) {
     product.title = title;

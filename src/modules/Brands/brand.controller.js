@@ -71,10 +71,12 @@ export const updateBrand = async (req, res, next) => {
   //data from body
   const { name, oldPublicId } = req.body;
   const { brandId } = req.params;
+  const { subCategoryId } = req.query;
   const addedBy = req.authUser._id;
 
   //check brand
   const brand = await Brand.findById(brandId);
+
   if (!brand) return next({ message: 'Brand not found', cause: 404 });
 
   if (
@@ -85,40 +87,48 @@ export const updateBrand = async (req, res, next) => {
       cause: 403,
       message: 'You are not authorized to update this product',
     });
+  // 3- duplicate  brand document check
+  const isBrandExists = await Brand.findOne({ name, subCategoryId });
+  if (isBrandExists)
+    return next({
+      message: 'Brand already exists for this subCategory',
+      cause: 400,
+    });
 
   // generate the slug
   if (name) {
     brand.name = name;
     brand.slug = slugify(name, '-');
-    console.log(name);
   }
-  //ecommerce-project/Categories/2gs2/SubCategories/4g1f/Brands/44ds/lkfxpheqbjsmftn0bec1.jpg
+  //ecommerce-project/Categories/2gs2/SubCategories/4g1f/Brands/44ds/lkfxpheqbjsmftn0bec1
   if (oldPublicId) {
     if (!req.file) {
       return next({ cause: 400, message: 'Image is required' });
     }
-    const folderPath = brand.Image.public_id.split(`${brand.folderId}/`)[0];
     const newPublicId = oldPublicId.split(`${brand.folderId}/`)[1];
+    const folderPath = brand.Image.public_id.split(`${brand.folderId}/`);
 
-    const { secure_url } = await cloudinaryConnection().uploader.upload(
-      req.file.path,
-      {
+    console.log(newPublicId);
+    const { secure_url, public_id } =
+      await cloudinaryConnection().uploader.upload(req.file.path, {
         folder: folderPath + `${brand.folderId}`,
         public_id: newPublicId,
-      }
-    );
-    brand.Image.map((img) => {
-      if (img.public_id === oldPublicId) {
-        img.secure_url = secure_url;
-      }
-    });
+      });
+    console.log({ secure_url, public_id });
+
     req.folder = folderPath + `${brand.folderId}`;
   }
 
-  await brand.save();
-  res.status(200).json({
-    success: true,
-    message: 'Brand updated successfully',
-    data: brand,
-  });
+  await brand
+    .save()
+    .then(
+      res.status(200).json({
+        success: true,
+        message: 'Brand updated successfully',
+        data: brand,
+      })
+    )
+    .catch((err) => {
+      err;
+    });
 };

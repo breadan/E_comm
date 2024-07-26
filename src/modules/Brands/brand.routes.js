@@ -20,9 +20,9 @@ router.post(
 router.put(
   '/updateBrand/:brandId',
   auth(endPointsRoles.ADD_BRAND),
-  // multerMiddleHost({
-  //   extensions: allowedExtensions.image,
-  // }).single('image'),
+  multerMiddleHost({
+    extensions: allowedExtensions.image,
+  }).single('image'),
   expressAsyncHandler(brandController.updateBrand)
 );
 
