@@ -17,7 +17,7 @@ const productSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-    } /** @todo make the slug in lowercase */,
+    },
     // 5 /folder of images product
     folderId: { type: String, required: true, unique: true },
 

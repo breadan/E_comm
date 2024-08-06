@@ -25,8 +25,13 @@ router.put(
 
 //********************* All Products *************************** */
 router.get(
-  '/allProducts',
+  '/allProducts2',
   expressAsyncHandler(productController.getAllProducts2)
+);
+
+router.get(
+  '/allProducts',
+  expressAsyncHandler(productController.getAllProducts)
 );
 
 export default router;

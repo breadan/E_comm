@@ -17,7 +17,7 @@ import { paginationFunction } from '../../utils/pagination.js';
  * @description add a product to the database
  */
 
-//================================= Add product API =================================//
+//====================== Add product API ============================//
 export const addProduct = async (req, res, next) => {
   // data from the request body
   const { title, desc, basePrice, discount, stock, specs } = req.body;
@@ -115,7 +115,7 @@ export const addProduct = async (req, res, next) => {
  * @description update a product in the database
  */
 
-//================================================= Update product API ============================================//
+//====================== Update product API ===============================//
 export const updateProduct = async (req, res, next) => {
   // data from the request body
   const { title, desc, specs, stock, basePrice, discount, oldPublicId } =
@@ -194,21 +194,29 @@ export const updateProduct = async (req, res, next) => {
   });
 };
 
-//===================================== get all products API ===================================//
+//================= get all products API ===============================//
 export const getAllProducts = async (req, res, next) => {
   const { page, size, sort, ...search } = req.query;
+  //take new instances from ApiFeatures
   const features = new APIFeatures(req.query, Product.find())
-    // .sort(sort)
-    // .pagination({ page, size })
-    // .search(search)
+    // .sort(sort);
+    // .pagination({ page, size });
+    // .search(search);
     .filters(search);
 
   // console.log(features.mongooseQuery);
   const products = await features.mongooseQuery;
   res.status(200).json({ success: true, message: '', data: products });
 };
+/**
+ * to replace any string from frontEnd:
+ * const formula = sort.replace(/desc/g, 1).replace(/asc/g, 1).replace(/ /g, ':')
+ * formula is string and we must convert it to object to send to DB
+ * const splitedKey = formula.split(':')
+ * const totalDocs = await Product.find().sort({key:value})
+ */
 
-//===================================== get All product  ===================================//
+//==================== get All product  ============================//
 export const getAllProducts2 = async (req, res, next) => {
   const { page, size } = req.query;
   // const data = paginationFunction({ page, size });

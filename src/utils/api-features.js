@@ -31,17 +31,17 @@ export class APIFeatures {
   // mongooseQuery  = model.find()
   // query = req.query
   constructor(query, mongooseQuery) {
-    this.query = query; // we can remove this variable becaue we didn't use it
+    this.query = query; // we can remove this variable because we didn't use it
     this.mongooseQuery = mongooseQuery;
   }
 
   pagination({ page, size }) {
     const { limit, skip } = paginationFunction({ page, size }); //{limit: 2, skip: 0}
-    // console.log({ limit, skip });
     this.mongooseQuery = this.mongooseQuery.limit(limit).skip(skip); // mongoose query
     return this;
-  }
+  } // mongoose query like product, category, sub....
 
+  //****************************************************************** */
   sort(sortBy) {
     if (!sortBy) {
       this.mongooseQuery = this.mongooseQuery.sort({ createdAt: -1 });
@@ -57,6 +57,7 @@ export class APIFeatures {
     return this;
   }
 
+  //****************************************************************** */
   search(search) {
     const queryFiler = {};
 
@@ -78,26 +79,14 @@ export class APIFeatures {
     return this;
   }
 
+  //****************************************************************** */
   filters(filters) {
-    /**
-         * the filters will contian data like this
-         * @params will be in this formate
-            appliedPrice[gte]=100 
-            stock[lte]=200
-            discount[ne]=0
-            title[regex]=iphone
-        */
     const queryFilter = JSON.parse(
       JSON.stringify(filters).replace(
         /gt|gte|lt|lte|in|nin|eq|ne|regex/g,
         (operator) => `$${operator}`
       )
     );
-
-    /**
-     * @object will be like this after the replace method
-     * { appliedPrice: { $gte: 100 }, stock: { $lte: 200 }, discount: { $ne: 0 }, title: { $regex: 'iphone' }
-     */
     this.mongooseQuery.find(queryFilter);
     return this;
   }

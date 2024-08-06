@@ -26,4 +26,13 @@ router.put(
   expressAsyncHandler(brandController.updateBrand)
 );
 
+//********************* All Products *************************** */
+router.get('/allBrands', expressAsyncHandler(brandController.getAllBrands));
+
+router.delete(
+  '/deleteBrand/:brandId',
+  auth(endPointsRoles.ADD_BRAND),
+  expressAsyncHandler(brandController.deleteBrand)
+);
+
 export default router;
