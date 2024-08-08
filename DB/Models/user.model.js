@@ -37,7 +37,13 @@ const userSchema = new Schema(
     ],
     role: {
       type: String,
-      enum: [systemRoles.USER, systemRoles.ADMIN, systemRoles.SUPER_ADMIN],
+      enum: [
+        //Object.values(systemRoles)
+        systemRoles.USER,
+        systemRoles.ADMIN,
+        systemRoles.SUPER_ADMIN,
+        systemRoles.DELIEVER_ROLE, //order
+      ],
       default: systemRoles.USER,
     },
     isEmailVerified: {
