@@ -160,7 +160,7 @@ export const convertFromcartToOrder = async (req, res, next) => {
     totalPrice = shippingPrice - (shippingPrice * coupon.couponAmount) / 100;
   }
 
-  // order status + paymentmethod
+  // order status + paymentMethod
   let orderStatus;
   if (paymentMethod === 'Cash') orderStatus = 'Placed';
 

@@ -473,7 +473,7 @@ export const htmlCode = (usertoken) => {
                               <tbody>
                                 <tr align="center">
                                   <td align="center" valign="middle" style="border-collapse:collapse;">
-                                  <a class="buttonText" href= "http://localhost:3000/auth/verify-email?token=${usertoken}" target="_blank" style="color: #4A90E2;text-decoration: none;font-weight: normal;display: block;border: 2px solid #585858;padding: 10px 80px;font-family: Arial;">Verify</a>
+                                  <a class="buttonText" href= "${req.protocol}://${req.headers.host}/auth/verify-email?token=${usertoken}" target="_blank" style="color: #4A90E2;text-decoration: none;font-weight: normal;display: block;border: 2px solid #585858;padding: 10px 80px;font-family: Arial;">Verify</a>
                                   </td>
                                 </tr>
                               </tbody>
