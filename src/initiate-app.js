@@ -28,6 +28,10 @@ export const initiateApp = (app, express) => {
   app.use('/coupon', routers.couponRouter);
   app.use('/order', routers.orderRouter);
 
+  app.use('*', (req, res, next) => {
+    next({ message: 'Not Found', Cause: 404 });
+  });
+
   app.use(globalResponse, rollbackUploadedFiles, rollbackSavedDocuments); //catch global error
 
   cronToChangeExpiredCoupons();

@@ -1,4 +1,5 @@
 //================================= add   order  ====================================
+import { nanoid } from 'nanoid';
 
 import { couponValidation } from '../../utils/coupon-validation.js';
 import { checkProductAvailability } from '../Cart/utils/check-product-in-db.js';
@@ -9,6 +10,16 @@ import Product from '../../../DB/Models/product.model.js';
 import Cart from '../../../DB/Models/cart.model.js';
 import { DateTime } from 'luxon';
 import { qrCodeGeneration } from '../../utils/qr-code.js';
+import {
+  confirmPaymentIntent,
+  createCheckoutSession,
+  createPaymentIntent,
+  createStripeCoupon,
+  refundPaymentIntent,
+  retrievePaymentIntent,
+} from '../../payment-handler/stripe.js';
+import createInvoice from '../../utils/pdfKit.js';
+import sendEmailService from '../../services/send-email.service.js';
 
 export const createOrder = async (req, res, next) => {
   //destructure the request body
@@ -32,7 +43,7 @@ export const createOrder = async (req, res, next) => {
     const isCouponValid = await couponValidation(couponCode, user);
     if (isCouponValid.status)
       return next({
-        message: isCouponValid.message, //from coupon
+        message: isCouponValid.message,
         cause: isCouponValid.status,
       });
     coupon = isCouponValid;
@@ -68,7 +79,7 @@ export const createOrder = async (req, res, next) => {
     totalPrice = shippingPrice - (shippingPrice * coupon.couponAmount) / 100;
   }
 
-  // order status + paymentMethod
+  // order status + payment method
   let orderStatus;
   if (paymentMethod === 'Cash') orderStatus = 'Placed';
 
@@ -106,9 +117,40 @@ export const createOrder = async (req, res, next) => {
       orderStatus: order.orderStatus,
     },
   ]);
-  res.status(201).json({ message: 'Order created successfully', orderQR });
+  //=================== invoice =================
+  const orderCode = `${req.authUser.userName}_${nanoid(3)}`;
+  //generate invoice object
+  const orderInvoice = {
+    shipping: {
+      name: req.authUser.userName,
+      address: order.address,
+      city: 'Alex',
+      state: 'Alexander',
+      country: 'EGY',
+    },
+    orderCode,
+    date: order.createdAt,
+    items: order.products,
+    subTotal: order.subTotal,
+    paidAmount: order.paidAmount,
+  };
+  await createInvoice(orderInvoice, `${orderCode}.pdf`);
+  await sendEmailService({
+    to: req.authUser.userName,
+    subject: 'Order Confirmation',
+    message: '<h1> Please find your invoice pdf below <h1>',
+    attachments: [
+      {
+        path: `./Files/${orderCode}.pdf`,
+      },
+    ],
+  });
+  res
+    .status(201)
+    .json({ message: 'Order created successfully', order, orderQR });
 };
-//================== convert Fromcart To Order =================//
+
+//**************************************************************** */
 export const convertFromcartToOrder = async (req, res, next) => {
   //destructure the request body
   const {
@@ -138,6 +180,10 @@ export const convertFromcartToOrder = async (req, res, next) => {
     coupon = isCouponValid;
   }
 
+  // product check
+  // const isProductAvailable = await checkProductAvailability(product, quantity);
+  // if(!isProductAvailable) return next({message: 'Product is not available', cause: 400});
+
   let orderItems = userCart.products.map((cartItem) => {
     return {
       title: cartItem.title,
@@ -160,7 +206,7 @@ export const convertFromcartToOrder = async (req, res, next) => {
     totalPrice = shippingPrice - (shippingPrice * coupon.couponAmount) / 100;
   }
 
-  // order status + paymentMethod
+  // order status + payment method
   let orderStatus;
   if (paymentMethod === 'Cash') orderStatus = 'Placed';
 
@@ -181,7 +227,6 @@ export const convertFromcartToOrder = async (req, res, next) => {
 
   await Cart.findByIdAndDelete(userCart._id);
 
-  //add many Products
   for (const item of order.orderItems) {
     await Product.updateOne(
       { _id: item.product },
@@ -202,7 +247,7 @@ export const convertFromcartToOrder = async (req, res, next) => {
 // ======================= order delivery =======================//
 export const delieverOrder = async (req, res, next) => {
   const { orderId } = req.params;
-  //convert user to deliverd in DB to check this route
+
   const updateOrder = await Order.findOneAndUpdate(
     {
       _id: orderId,
@@ -228,4 +273,103 @@ export const delieverOrder = async (req, res, next) => {
   res
     .status(200)
     .json({ message: 'Order delivered successfully', order: updateOrder });
+};
+
+// ======================= order payment with stipe =======================//
+export const payWithStripe = async (req, res, next) => {
+  const { orderId } = req.params;
+  const { _id: userId } = req.authUser;
+
+  // get order details from our database
+  const order = await Order.findOne({
+    _id: orderId,
+    user: userId,
+    orderStatus: 'Pending',
+  });
+  if (!order)
+    return next({ message: 'Order not found or cannot be paid', cause: 404 });
+
+  const paymentObject = {
+    customer_email: req.authUser.email,
+    metadata: { orderId: order._id.toString() },
+    discounts: [],
+    line_items: order.orderItems.map((item) => {
+      return {
+        price_data: {
+          currency: 'EGP',
+          product_data: {
+            name: item.title,
+          },
+          unit_amount: item.price * 100, // in cents
+        },
+        quantity: item.quantity,
+      };
+    }),
+  };
+  // coupon check
+  if (order.coupon) {
+    const stripeCoupon = await createStripeCoupon({ couponId: order.coupon });
+    if (stripeCoupon.status)
+      return next({ message: stripeCoupon.message, cause: 400 });
+
+    paymentObject.discounts.push({
+      coupon: stripeCoupon.id,
+    });
+  }
+
+  const checkoutSession = await createCheckoutSession(paymentObject);
+  const paymentIntent = await createPaymentIntent({
+    amount: order.totalPrice,
+    currency: 'EGP',
+  });
+
+  order.payment_intent = paymentIntent.id;
+  await order.save();
+
+  res.status(200).json({ checkoutSession, paymentIntent });
+};
+
+//======== apply webhook locally to confirm the  order =================//
+export const stripeWebhookLocal = async (req, res, next) => {
+  const orderId = req.body.data.object.metadata.orderId;
+  console.log(req.body.data.object.metadata.orderId);
+
+  const confirmedOrder = await Order.findById(orderId);
+  if (!confirmedOrder) return next({ message: 'Order not found', cause: 404 });
+
+  await confirmPaymentIntent({
+    paymentIntentId: confirmedOrder.payment_intent, //DB
+  });
+
+  confirmedOrder.isPaid = true;
+  confirmedOrder.paidAt = DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss');
+  confirmedOrder.orderStatus = 'Paid';
+
+  await confirmedOrder.save();
+
+  res.status(200).json({ message: 'webhook received' });
+};
+
+//*********************************************************** */
+export const refundOrder = async (req, res, next) => {
+  const { orderId } = req.params;
+
+  const findOrder = await Order.findOne({ _id: orderId, orderStatus: 'Paid' });
+  if (!findOrder)
+    return next({
+      message: 'Order not found or cannot be refunded',
+      cause: 404,
+    });
+
+  // refund the payment intent
+  const refund = await refundPaymentIntent({
+    paymentIntentId: findOrder.payment_intent,
+  });
+
+  findOrder.orderStatus = 'Refunded';
+  await findOrder.save();
+
+  res
+    .status(200)
+    .json({ message: 'Order refunded successfully', order: refund });
 };

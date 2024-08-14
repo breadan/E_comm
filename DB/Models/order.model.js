@@ -38,7 +38,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Delivered', 'Placed', 'Cancelled'],
+      enum: ['Pending', 'Paid', 'Delivered', 'Placed', 'Cancelled', 'Refuned'],
       required: true,
       default: 'Pending',
     },
@@ -52,6 +52,8 @@ const orderSchema = new mongoose.Schema(
 
     cancelledAt: { type: String },
     cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    payment_intent: String,
   },
   { timestamps: true }
 );

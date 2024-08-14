@@ -29,7 +29,7 @@ export const signUp = async (req, res, next) => {
   }
   // 3- send confirmation email to the user
   const usertoken = jwt.sign({ email }, process.env.JWT_SECRET_VERFICATION, {
-    expiresIn: '2m',
+    expiresIn: '2h',
   });
 
   const isEmailSent = await sendEmailService({
